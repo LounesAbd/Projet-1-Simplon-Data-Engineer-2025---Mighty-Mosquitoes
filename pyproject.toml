@@ -1,0 +1,15 @@
+[project]
+name = "projet-1-simplon-data-engineer-2025-mighty-mosquitoes"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.10.7",
+    "numpy>=2.3.4",
+    "pandas>=2.3.3",
+    "psycopg-binary>=3.2.11",
+    "python-dotenv>=1.1.1",
+    "requests>=2.32.5",
+    "sqlalchemy>=2.0.44",
+]
