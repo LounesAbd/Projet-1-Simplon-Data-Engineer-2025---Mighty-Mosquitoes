@@ -2,3 +2,5 @@
 .env
 config.yml
 .vscode/
+*.csv
+./data/*.csv
