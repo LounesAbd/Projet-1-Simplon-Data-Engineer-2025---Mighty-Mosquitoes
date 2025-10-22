@@ -4,4 +4,4 @@ config.yml
 .vscode/
 *.csv
 ./data/*.csv
-./etl/__pycache__
+./etl/__pycache__/
