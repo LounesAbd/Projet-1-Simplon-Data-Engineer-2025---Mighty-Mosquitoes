@@ -278,7 +278,7 @@ def collect_csv_stats(file_path: Path, delimiter: str) -> CsvStats:
     except Exception as error:
         print(f"❌ Erreur lors de la lecture du CSV: {error}")
         return CsvStats(exists=True, size_bytes=size_bytes)
-
+    
     return CsvStats(exists=True, size_bytes=size_bytes, line_count=line_count, header=header)
 
 
@@ -381,10 +381,10 @@ def download_accidents(
     elapsed_time = time.time() - start_time
     print(f"⏱️  Temps de téléchargement: {elapsed_time:.1f} secondes")
 
-    stats = collect_csv_stats(output_path, config.delimiter)
-    print_summary(stats)
+    #stats = collect_csv_stats(output_path, config.delimiter)
+    #print_summary(stats)
 
-    return stats
+    return #stats
 
 
 def main() -> None:
