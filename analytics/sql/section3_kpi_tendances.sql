@@ -288,4 +288,56 @@ SELECT
 FROM stats
 ORDER BY numero_jour;
 
+
+-- ----------------------------------------------------------------------------
+-- 3.9 KPI SECONDAIRE : heure x jour
+-- ----------------------------------------------------------------------------
+
+WITH base AS (
+    SELECT
+        EXTRACT(ISODOW FROM make_date(an::int, mois::int, jour::int))::INT AS numero_jour,
+        EXTRACT(HOUR FROM hrmn)::INT AS heure_num,
+        COUNT(*) AS nb_accidents
+    FROM analytics.accident_usagers_aggr
+    WHERE an IS NOT NULL
+      AND mois IS NOT NULL
+      AND jour IS NOT NULL
+      AND hrmn IS NOT NULL
+    GROUP BY 1, 2
+),
+jours AS (
+    SELECT gs::INT AS numero_jour,
+           CASE gs
+               WHEN 1 THEN 'Lundi'
+               WHEN 2 THEN 'Mardi'
+               WHEN 3 THEN 'Mercredi'
+               WHEN 4 THEN 'Jeudi'
+               WHEN 5 THEN 'Vendredi'
+               WHEN 6 THEN 'Samedi'
+               WHEN 7 THEN 'Dimanche'
+           END AS nom_jour,
+           CASE
+               WHEN gs BETWEEN 1 AND 5 THEN 'Semaine'
+               ELSE 'Weekend'
+           END AS type_jour
+    FROM generate_series(1, 7) AS gs
+),
+heures AS (
+    SELECT gs AS heure_num,
+           LPAD(gs::TEXT, 2, '0') AS heure
+    FROM generate_series(0, 23) AS gs
+)
+SELECT
+    j.numero_jour,
+    j.nom_jour,
+    j.type_jour,
+    h.heure_num,
+    h.heure,
+    COALESCE(b.nb_accidents, 0) AS nb_accidents
+FROM jours j
+CROSS JOIN heures h
+LEFT JOIN base b
+       ON b.numero_jour = j.numero_jour
+      AND b.heure_num = h.heure_num
+ORDER BY j.numero_jour, h.heure_num;
 -- =========================================================================
