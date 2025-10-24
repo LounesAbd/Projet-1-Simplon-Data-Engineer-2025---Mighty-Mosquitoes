@@ -15,8 +15,7 @@ WITH stats AS (
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
         SUM(nb_indemnes) AS nb_indemnes,
         SUM(nb_tues) AS nb_tues,
-        SUM(nb_blesses_hosp) AS nb_blesses_hospitalises,
-        SUM(nb_blesses_legers) AS nb_blesses_legers,
+        SUM(nb_blesses) AS nb_blesses,
         SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels
     FROM analytics.accident_usagers_aggr
     WHERE an IS NOT NULL
@@ -28,8 +27,7 @@ SELECT
     nb_personnes_impliquees,
     nb_indemnes,
     nb_tues,
-    nb_blesses_hospitalises,
-    nb_blesses_legers,
+    nb_blesses,
     ROUND(100.0 * nb_tues / NULLIF(nb_personnes_impliquees, 0), 2) AS taux_mortalite_pct,
     ROUND(100.0 * nb_accidents_mortels / NULLIF(nb_accidents, 0), 2) AS pct_accidents_mortels,
     LAG(nb_accidents) OVER (ORDER BY annee) AS nb_accidents_annee_prec,
@@ -83,12 +81,11 @@ ORDER BY mois;
 -- ----------------------------------------------------------------------------
 WITH stats AS (
     SELECT
-        CASE WHEN hrmn BETWEEN 0 AND 2359 THEN hrmn / 100 ELSE NULL END AS heure_num,
+        CASE WHEN hrmn IS NOT NULL THEN EXTRACT(HOUR FROM hrmn)::INT ELSE NULL END AS heure_num,
         COUNT(*) AS nb_accidents,
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
         SUM(nb_tues) AS nb_tues
     FROM analytics.accident_usagers_aggr
-    WHERE hrmn IS NOT NULL
     GROUP BY 1
 )
 SELECT
@@ -120,11 +117,11 @@ ORDER BY heure_num NULLS LAST;
 -- ----------------------------------------------------------------------------
 WITH stats AS (
     SELECT
-        EXTRACT(ISODOW FROM make_date(an, mois, jour))::INT AS numero_jour,
+        EXTRACT(ISODOW FROM make_date(an::int, mois::int, jour::int))::INT AS numero_jour,
         COUNT(*) AS nb_accidents,
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
         SUM(nb_tues) AS nb_tues,
-        COUNT(DISTINCT make_date(an, mois, jour)) AS nb_jours_observes
+        COUNT(DISTINCT make_date(an::int, mois::int, jour::int)) AS nb_jours_observes
     FROM analytics.accident_usagers_aggr
     WHERE an IS NOT NULL AND mois IS NOT NULL AND jour IS NOT NULL
     GROUP BY 1
@@ -223,12 +220,11 @@ ORDER BY mois;
 -- ----------------------------------------------------------------------------
 WITH stats AS (
     SELECT
-        CASE WHEN hrmn BETWEEN 0 AND 2359 THEN hrmn / 100 ELSE NULL END AS heure_num,
+        CASE WHEN hrmn IS NOT NULL THEN EXTRACT(HOUR FROM hrmn)::INT ELSE NULL END AS heure_num,
         COUNT(*) AS nb_accidents_total,
         SUM(nb_tues) AS nb_tues,
         SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels
     FROM analytics.accident_usagers_aggr
-    WHERE hrmn IS NOT NULL
     GROUP BY 1
 )
 SELECT
@@ -259,7 +255,7 @@ ORDER BY heure_num NULLS LAST;
 -- ----------------------------------------------------------------------------
 WITH stats AS (
     SELECT
-        EXTRACT(ISODOW FROM make_date(an, mois, jour))::INT AS numero_jour,
+        EXTRACT(ISODOW FROM make_date(an::int, mois::int, jour::int))::INT AS numero_jour,
         COUNT(*) AS nb_accidents_total,
         SUM(nb_tues) AS nb_tues,
         SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels

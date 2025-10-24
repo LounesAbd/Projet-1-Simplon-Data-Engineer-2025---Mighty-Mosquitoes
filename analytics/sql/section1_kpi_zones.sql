@@ -18,8 +18,7 @@ WITH stats AS (
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
         SUM(nb_indemnes) AS nb_indemnes,
         SUM(nb_tues) AS nb_tues,
-        SUM(nb_blesses_hosp) AS nb_blesses_hospitalises,
-        SUM(nb_blesses_legers) AS nb_blesses_legers,
+        SUM(nb_blesses) AS nb_blesses,
         SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels
     FROM analytics.accident_usagers_aggr
     WHERE reg_code IS NOT NULL
@@ -32,8 +31,7 @@ SELECT
     nb_personnes_impliquees,
     nb_indemnes,
     nb_tues,
-    nb_blesses_hospitalises,
-    nb_blesses_legers,
+    nb_blesses,
     ROUND(100.0 * nb_tues / NULLIF(nb_personnes_impliquees, 0), 2) AS taux_mortalite_pct,
     ROUND(100.0 * nb_accidents_mortels / NULLIF(nb_accidents, 0), 2) AS pct_accidents_mortels,
     DENSE_RANK() OVER (ORDER BY nb_accidents DESC) AS rang
@@ -47,28 +45,24 @@ LIMIT 10;
 
 WITH stats AS (
     SELECT
-        com_code,
-        com_name,
         dep_code,
         dep_name,
         COUNT(*) AS nb_accidents,
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
         SUM(nb_tues) AS nb_tues,
-        SUM(nb_blesses_hosp) AS nb_blesses_hospitalises,
-        SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels
+        SUM(nb_blesses) AS nb_blesses,
+        sum(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels
     FROM analytics.accident_usagers_aggr
-    WHERE com_code IS NOT NULL
-    GROUP BY com_code, com_name, dep_code, dep_name
+    WHERE dep_code IS NOT NULL
+    GROUP BY dep_code, dep_name
 )
 SELECT
-    com_code,
-    com_name,
     dep_code,
     dep_name,
     nb_accidents,
     nb_personnes_impliquees,
     nb_tues,
-    nb_blesses_hospitalises,
+    nb_blesses,
     ROUND(100.0 * nb_tues / NULLIF(nb_personnes_impliquees, 0), 2) AS taux_mortalite_pct,
     ROUND(100.0 * nb_accidents_mortels / NULLIF(nb_accidents, 0), 2) AS pct_accidents_mortels,
     DENSE_RANK() OVER (ORDER BY nb_accidents DESC) AS rang
@@ -82,18 +76,15 @@ LIMIT 10;
 
 SELECT
     aua.agg AS code_agglo,
-    COALESCE(da.libelle, 'Non renseigné') AS libelle_agglo,
     COUNT(*) AS nb_accidents,
     SUM(nb_usagers_total) AS nb_personnes_impliquees,
     SUM(nb_tues) AS nb_tues,
-    SUM(nb_blesses_hosp) AS nb_blesses_hospitalises,
-    SUM(nb_blesses_legers) AS nb_blesses_legers,
-    ROUND(100.0 * COUNT(*) / NULLIF(SUM(COUNT(*)) OVER (), 0), 2) AS pct_accidents,
+    SUM(nb_blesses) AS nb_blesses,
+    Round(100.0 * COUNT(*) / NULLIF(SUM(COUNT(*)) OVER (), 0), 2) AS pct_accidents,
     ROUND(100.0 * SUM(nb_tues) / NULLIF(SUM(SUM(nb_tues)) OVER (), 0), 2) AS pct_tues,
     ROUND(100.0 * SUM(nb_tues) / NULLIF(SUM(nb_usagers_total), 0), 2) AS taux_mortalite_pct
 FROM analytics.accident_usagers_aggr aua
-LEFT JOIN analytics.dim_agg da ON da.agg = aua.agg
-GROUP BY aua.agg, da.libelle
+GROUP BY aua.agg
 ORDER BY code_agglo;
 
 -- ----------------------------------------------------------------------------
@@ -102,24 +93,20 @@ ORDER BY code_agglo;
 
 WITH stats AS (
     SELECT
-        COALESCE(dc.libelle, 'Non renseigné') AS libelle_categorie_route,
         catr AS code_categorie_route,
         COUNT(*) AS nb_accidents,
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
         SUM(nb_tues) AS nb_tues,
-        SUM(nb_blesses_hosp) AS nb_blesses_hospitalises,
-        SUM(nb_blesses_legers) AS nb_blesses_legers
-    FROM analytics.accident_usagers_aggr aua
-    LEFT JOIN analytics.dim_catr dc ON dc.catr = aua.catr
-    GROUP BY catr, dc.libelle
+        SUM(nb_blesses) AS nb_blesses
+        FROM analytics.accident_usagers_aggr aua
+    GROUP BY catr
 )
 SELECT
     code_categorie_route,
-    libelle_categorie_route,
     nb_accidents,
     nb_personnes_impliquees,
     nb_tues,
-    nb_blesses_hospitalises,
+    nb_blesses,
     ROUND(100.0 * nb_accidents / NULLIF(SUM(nb_accidents) OVER (), 0), 2) AS pct_accidents,
     ROUND(100.0 * nb_tues / NULLIF(nb_personnes_impliquees, 0), 2) AS taux_mortalite_pct,
     DENSE_RANK() OVER (ORDER BY nb_accidents DESC) AS rang
@@ -134,17 +121,14 @@ ORDER BY nb_accidents DESC;
 WITH stats AS (
     SELECT
         aua.circ AS regime_circulation,
-        COALESCE(dc.libelle, 'Non renseigné') AS libelle_circulation,
         COUNT(*) AS nb_accidents,
         SUM(nb_tues) AS nb_tues,
         SUM(nb_usagers_total) AS nb_personnes_impliquees
     FROM analytics.accident_usagers_aggr aua
-    LEFT JOIN analytics.dim_circ dc ON dc.circ = aua.circ
-    GROUP BY aua.circ, dc.libelle
+    GROUP BY aua.circ
 )
 SELECT
     regime_circulation,
-    libelle_circulation,
     nb_accidents,
     nb_tues,
     ROUND(100.0 * nb_accidents / NULLIF(SUM(nb_accidents) OVER (), 0), 2) AS pct_accidents,
@@ -156,14 +140,6 @@ ORDER BY nb_accidents DESC;
 WITH stats AS (
     SELECT
         aua.vosp AS voie_reservee,
-        CASE aua.vosp
-            WHEN 1 THEN 'Piste cyclable'
-            WHEN 2 THEN 'Bande cyclable'
-            WHEN 3 THEN 'Voie réservée'
-            WHEN 4 THEN 'Voie spéciale (autre)'
-            WHEN 5 THEN 'Voie spéciale (non précisée)'
-            ELSE 'Pas de voie réservée'
-        END AS libelle_voie_reservee,
         COUNT(*) AS nb_accidents,
         SUM(nb_tues) AS nb_tues,
         SUM(nb_usagers_total) AS nb_personnes_impliquees
@@ -172,7 +148,6 @@ WITH stats AS (
 )
 SELECT
     voie_reservee,
-    libelle_voie_reservee,
     nb_accidents,
     nb_tues,
     ROUND(100.0 * nb_accidents / NULLIF(SUM(nb_accidents) OVER (), 0), 2) AS pct_accidents,
@@ -184,13 +159,6 @@ ORDER BY nb_accidents DESC;
 WITH stats AS (
     SELECT
         aua.plan AS code_trace_plan,
-        CASE aua.plan
-            WHEN 1 THEN 'Partie rectiligne'
-            WHEN 2 THEN 'En courbe à gauche'
-            WHEN 3 THEN 'En courbe à droite'
-            WHEN 4 THEN 'En S'
-            ELSE 'Non renseigné'
-        END AS libelle_trace_plan,
         COUNT(*) AS nb_accidents,
         SUM(nb_tues) AS nb_tues,
         SUM(nb_usagers_total) AS nb_personnes_impliquees
@@ -199,7 +167,6 @@ WITH stats AS (
 )
 SELECT
     code_trace_plan,
-    libelle_trace_plan,
     nb_accidents,
     nb_tues,
     ROUND(100.0 * nb_accidents / NULLIF(SUM(nb_accidents) OVER (), 0), 2) AS pct_accidents,
@@ -211,13 +178,6 @@ ORDER BY nb_accidents DESC;
 WITH stats AS (
     SELECT
         aua.prof AS code_profil,
-        CASE aua.prof
-            WHEN 1 THEN 'Plat'
-            WHEN 2 THEN 'Pente'
-            WHEN 3 THEN 'Sommet de côte'
-            WHEN 4 THEN 'Bas de côte'
-            ELSE 'Non renseigné'
-        END AS libelle_profil,
         COUNT(*) AS nb_accidents,
         SUM(nb_tues) AS nb_tues,
         SUM(nb_usagers_total) AS nb_personnes_impliquees
@@ -226,7 +186,6 @@ WITH stats AS (
 )
 SELECT
     code_profil,
-    libelle_profil,
     nb_accidents,
     nb_tues,
     ROUND(100.0 * nb_accidents / NULLIF(SUM(nb_accidents) OVER (), 0), 2) AS pct_accidents,
@@ -302,7 +261,6 @@ LIMIT 10;
 
 SELECT
     aua.agg AS code_agglo,
-    COALESCE(da.libelle, 'Non renseigné') AS libelle_agglo,
     SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels,
     SUM(nb_tues) AS nb_tues,
     COUNT(*) AS nb_accidents_total,
@@ -312,8 +270,7 @@ SELECT
     ROUND(100.0 * SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) /
           NULLIF(COUNT(*), 0), 2) AS taux_accidents_mortels_pct
 FROM analytics.accident_usagers_aggr aua
-LEFT JOIN analytics.dim_agg da ON da.agg = aua.agg
-GROUP BY aua.agg, da.libelle
+GROUP BY aua.agg
 ORDER BY code_agglo;
 
 -- ----------------------------------------------------------------------------
@@ -323,17 +280,14 @@ ORDER BY code_agglo;
 WITH stats AS (
     SELECT
         aua.catr AS code_categorie_route,
-        COALESCE(dc.libelle, 'Non renseigné') AS libelle_categorie_route,
         SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels,
         SUM(nb_tues) AS nb_tues,
         COUNT(*) AS nb_accidents_total
     FROM analytics.accident_usagers_aggr aua
-    LEFT JOIN analytics.dim_catr dc ON dc.catr = aua.catr
-    GROUP BY aua.catr, dc.libelle
+    GROUP BY aua.catr
 )
 SELECT
     code_categorie_route,
-    libelle_categorie_route,
     nb_accidents_mortels,
     nb_tues,
     nb_accidents_total,
@@ -351,16 +305,13 @@ ORDER BY nb_tues DESC;
 WITH stats AS (
     SELECT
         aua.circ AS code_circulation,
-        COALESCE(dc.libelle, 'Non renseigné') AS libelle_circulation,
         SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels,
         SUM(nb_tues) AS nb_tues
     FROM analytics.accident_usagers_aggr aua
-    LEFT JOIN analytics.dim_circ dc ON dc.circ = aua.circ
-    GROUP BY aua.circ, dc.libelle
+    GROUP BY aua.circ
 )
 SELECT
     code_circulation,
-    libelle_circulation,
     nb_accidents_mortels,
     nb_tues,
     ROUND(100.0 * nb_accidents_mortels / NULLIF(SUM(nb_accidents_mortels) OVER (), 0), 2) AS pct_accidents_mortels
@@ -371,13 +322,6 @@ ORDER BY nb_tues DESC;
 WITH stats AS (
     SELECT
         aua.plan AS code_trace_plan,
-        CASE aua.plan
-            WHEN 1 THEN 'Partie rectiligne'
-            WHEN 2 THEN 'En courbe à gauche'
-            WHEN 3 THEN 'En courbe à droite'
-            WHEN 4 THEN 'En S'
-            ELSE 'Non renseigné'
-        END AS libelle_trace_plan,
         SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels,
         SUM(nb_tues) AS nb_tues
     FROM analytics.accident_usagers_aggr aua
@@ -385,7 +329,6 @@ WITH stats AS (
 )
 SELECT
     code_trace_plan,
-    libelle_trace_plan,
     nb_accidents_mortels,
     nb_tues,
     ROUND(100.0 * nb_accidents_mortels / NULLIF(SUM(nb_accidents_mortels) OVER (), 0), 2) AS pct_accidents_mortels

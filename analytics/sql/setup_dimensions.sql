@@ -197,66 +197,69 @@ ON CONFLICT (ints) DO UPDATE SET libelle = EXCLUDED.libelle;
 \echo '4/5 Création de la vue matérialisée accident_usagers_aggr...'
 \echo '    (Cette opération peut prendre 30-90 secondes sur ~476k accidents)'
 
-DO $$
+DO $plpgsql$
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM pg_matviews
-        WHERE schemaname = 'analytics' AND matviewname = 'accident_usagers_aggr'
+        SELECT 1
+        FROM pg_matviews
+        WHERE schemaname = 'analytics'
+          AND matviewname = 'accident_usagers_aggr'
     ) THEN
         RAISE NOTICE '    Création en cours...';
-
-        EXECUTE $$
+        
+        EXECUTE $mv$
             CREATE MATERIALIZED VIEW analytics.accident_usagers_aggr AS
+            WITH u AS (
+                SELECT
+                    num_acc,
+                    COUNT(*)                                  AS nb_usagers_total,
+                    COUNT(*) FILTER (WHERE grav = 'Indemne')  AS nb_indemnes,
+                    COUNT(*) FILTER (WHERE grav = 'Tué')      AS nb_tues,
+                    COUNT(*) FILTER (WHERE grav = 'Blessé')   AS nb_blesses
+                FROM USAGER
+                GROUP BY num_acc
+            ),
+            v AS (
+                SELECT
+                    num_acc,
+                    COUNT(DISTINCT vehicule_id) AS nb_vehicules_impliques
+                FROM VEHICULE
+                GROUP BY num_acc
+            )
             SELECT
                 a.num_acc,
-                a.agg,
-                a.circ,
-                a.lum,
-                a.atm,
-                a.col AS code_collision,
-                l.reg_code,
-                l.reg_name,
-                l.dep_code,
-                l.dep_name,
-                l.com_code,
-                l.com_name,
-                l.catr,
-                l.pr,
-                l.pr1,
-                l.v1,
-                l.lart,
-                l.larr,
-                l.surf,
-                l.vosp,
-                l.prof,
-                l.plan,
-                d.an,
-                d.mois,
-                d.jour,
-                d.hrmn,
-                COUNT(DISTINCT u.id_personne) AS nb_usagers_total,
-                SUM(CASE WHEN u.grav = 1 THEN 1 ELSE 0 END) AS nb_indemnes,
-                SUM(CASE WHEN u.grav = 2 THEN 1 ELSE 0 END) AS nb_tues,
-                SUM(CASE WHEN u.grav = 3 THEN 1 ELSE 0 END) AS nb_blesses_hosp,
-                SUM(CASE WHEN u.grav = 4 THEN 1 ELSE 0 END) AS nb_blesses_legers,
-                COUNT(DISTINCT u.id_vehicule) AS nb_vehicules_implicites
+                a.agg, a.circ, a.lum, a.atm, a.col AS code_collision,
+                l.reg_code, l.reg_name, l.dep_code, l.dep_name,
+                l.com_code, l.com_name, l.catr, a.surf, l.vosp, a.prof, a.plan,
+                d.an, d.mois, d.jour, d.hrmn,
+
+                COALESCE(u.nb_usagers_total, 0)       AS nb_usagers_total,
+                COALESCE(u.nb_indemnes, 0)            AS nb_indemnes,
+                COALESCE(u.nb_tues, 0)                AS nb_tues,
+                COALESCE(u.nb_blesses, 0)             AS nb_blesses,
+                COALESCE(v.nb_vehicules_impliques, 0) AS nb_vehicules_impliques
             FROM ACCIDENT a
-            LEFT JOIN LIEUX l USING (num_acc)
-            LEFT JOIN DATE_ACCIDENT d USING (num_acc)
-            LEFT JOIN USAGER u USING (num_acc)
+            INNER JOIN LIEUX l USING (num_acc)
+            INNER JOIN DATE_ACCIDENT d USING (num_acc)
+            LEFT  JOIN u USING (num_acc)
+            LEFT  JOIN v USING (num_acc)
             GROUP BY
                 a.num_acc, a.agg, a.circ, a.lum, a.atm, a.col,
                 l.reg_code, l.reg_name, l.dep_code, l.dep_name,
-                l.com_code, l.com_name, l.catr, l.pr, l.pr1, l.v1, l.lart, l.larr,
-                l.surf, l.vosp, l.prof, l.plan,
-                d.an, d.mois, d.jour, d.hrmn
-        $$;
+                l.com_code, l.com_name, l.catr, a.surf, l.vosp, a.prof, a.plan,
+                d.an, d.mois, d.jour, d.hrmn,
+                u.nb_usagers_total, u.nb_indemnes, u.nb_tues, u.nb_blesses,
+                v.nb_vehicules_impliques;
+        $mv$;
 
         RAISE NOTICE '    ✓ Vue matérialisée créée avec succès';
     ELSE
         RAISE NOTICE '    ⚠️  Vue matérialisée déjà existante. Utiliser refresh_matviews.sql pour la mettre à jour';
     END IF;
-END $$;
+END
+$plpgsql$ LANGUAGE plpgsql;
+
+
 
 \echo '  ✅ Vue matérialisée prête'
 \echo ''
@@ -277,7 +280,7 @@ BEGIN
     SELECT COUNT(*) INTO nb_accidents_source FROM ACCIDENT;
     SELECT COUNT(*) INTO nb_accidents_vue FROM analytics.accident_usagers_aggr;
 
-    SELECT SUM(CASE WHEN grav = 2 THEN 1 ELSE 0 END) INTO nb_tues_source FROM USAGER;
+    SELECT SUM(CASE WHEN grav = 'Tué' THEN 1 ELSE 0 END) INTO nb_tues_source FROM USAGER;
     SELECT SUM(nb_tues) INTO nb_tues_vue FROM analytics.accident_usagers_aggr;
 
     IF nb_accidents_source != nb_accidents_vue THEN
@@ -343,7 +346,7 @@ CREATE INDEX IF NOT EXISTS idx_accident_usagers_aggr_lum_atm ON analytics.accide
 \echo 'Prochaines étapes :'
 \echo '  1. Tester les requêtes analytiques :'
 \echo '     psql -d accidents_db -f etl/sql/section1_kpi_zones.sql'
-\echo ''
+\echo 'psql -U postgres -h localhost -d db_accm -f analytics/sql/section1_kpi_zones.sql
 \echo '  2. Valider la refactorisation :'
 \echo '     psql -d accidents_db -f etl/sql/tests_validation.sql'
 \echo ''
