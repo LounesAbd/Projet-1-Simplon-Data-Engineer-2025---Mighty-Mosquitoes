@@ -11,15 +11,15 @@
 WITH stats_hebdomadaires AS (
     SELECT
         an AS annee,
-        EXTRACT(WEEK FROM make_date(an, mois, jour))::INT AS semaine,
-        DATE_TRUNC('week', make_date(an, mois, jour))::DATE AS date_debut_semaine,
+        EXTRACT(WEEK FROM make_date(an::int, mois::int, jour::int))::INT AS semaine,
+        DATE_TRUNC('week', make_date(an::int, mois::int, jour::int))::DATE AS date_debut_semaine,
         COUNT(*) AS nb_accidents,
         SUM(nb_tues) AS nb_tues,
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
-        SUM(100 * nb_tues + 10 * nb_blesses_hosp + nb_blesses_legers)::NUMERIC AS somme_scores
+        SUM(100 * nb_tues + 7 * nb_blesses)::NUMERIC AS somme_scores
     FROM analytics.accident_usagers_aggr
     WHERE an IS NOT NULL AND mois IS NOT NULL AND jour IS NOT NULL
-    GROUP BY an, EXTRACT(WEEK FROM make_date(an, mois, jour)), DATE_TRUNC('week', make_date(an, mois, jour))
+    GROUP BY an, EXTRACT(WEEK FROM make_date(an::int, mois::int, jour::int)), DATE_TRUNC('week', make_date(an::int, mois::int, jour::int))
 ),
 hebdo_calc AS (
     SELECT
@@ -74,14 +74,14 @@ LIMIT 50;
 WITH stats AS (
     SELECT
         mois,
-        CASE WHEN EXTRACT(ISODOW FROM make_date(an, mois, jour)) IN (6, 7) THEN TRUE ELSE FALSE END AS est_weekend,
+        CASE WHEN EXTRACT(ISODOW FROM make_date(an::int, mois::int, jour::int)) IN (6, 7) THEN TRUE ELSE FALSE END AS est_weekend,
         COUNT(*) AS nb_accidents,
         SUM(nb_tues) AS nb_tues,
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
-        SUM(100 * nb_tues + 10 * nb_blesses_hosp + nb_blesses_legers)::NUMERIC AS somme_scores
+        SUM(100 * nb_tues + 10 * nb_blesses)::NUMERIC AS somme_scores
     FROM analytics.accident_usagers_aggr
     WHERE an IS NOT NULL AND mois IS NOT NULL AND jour IS NOT NULL
-    GROUP BY mois, CASE WHEN EXTRACT(ISODOW FROM make_date(an, mois, jour)) IN (6, 7) THEN TRUE ELSE FALSE END
+    GROUP BY mois, CASE WHEN EXTRACT(ISODOW FROM make_date(an::int, mois::int, jour::int)) IN (6, 7) THEN TRUE ELSE FALSE END
 )
 SELECT
     mois,

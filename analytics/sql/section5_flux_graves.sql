@@ -15,10 +15,9 @@ WITH stats_departements AS (
         COUNT(*) AS nb_accidents,
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
         SUM(nb_tues) AS nb_tues,
-        SUM(nb_blesses_hosp) AS nb_blesses_hospitalises,
-        SUM(nb_blesses_legers) AS nb_blesses_legers,
-        SUM(100 * nb_tues + 10 * nb_blesses_hosp + nb_blesses_legers)::NUMERIC AS somme_scores,
-        SUM(CASE WHEN nb_tues > 0 OR nb_blesses_hosp > 0 THEN 1 ELSE 0 END) AS nb_accidents_graves,
+        SUM(nb_blesses) AS nb_blesses,
+        SUM(100 * nb_tues + 30 * nb_blesses)::NUMERIC AS somme_scores,
+        SUM(CASE WHEN nb_tues > 0 OR nb_blesses > 0 THEN 1 ELSE 0 END) AS nb_accidents_graves,
         SUM(CASE WHEN nb_tues > 0 THEN 1 ELSE 0 END) AS nb_accidents_mortels
     FROM analytics.accident_usagers_aggr
     WHERE dep_code IS NOT NULL
@@ -41,7 +40,7 @@ SELECT
     ROUND(100.0 * nb_accidents_graves / NULLIF(nb_accidents, 0), 2) AS taux_accidents_graves,
     ROUND(100.0 * nb_tues / NULLIF(nb_personnes_impliquees, 0), 2) AS taux_mortalite,
     nb_tues,
-    nb_blesses_hospitalises,
+    nb_blesses,
     CASE
         WHEN rang_volume <= 10 AND rang_gravite <= 10 THEN 'Zone dense ET dangereuse'
         WHEN rang_volume <= 10 AND rang_gravite > 50 THEN 'Zone dense mais PEU dangereuse'
@@ -60,7 +59,7 @@ WITH stats_par_dept AS (
         dep_code AS departement,
         COUNT(*) AS nb_accidents,
         SUM(nb_usagers_total) AS nb_personnes_impliquees,
-        SUM(100 * nb_tues + 10 * nb_blesses_hosp + nb_blesses_legers)::NUMERIC AS somme_scores
+        SUM(100 * nb_tues + 10 * nb_blesses)::NUMERIC AS somme_scores
     FROM analytics.accident_usagers_aggr
     WHERE dep_code IS NOT NULL
     GROUP BY dep_code
@@ -93,7 +92,7 @@ FROM valeurs;
         dep_code AS departement,
         dep_name AS nom_departement,
         COUNT(*) AS nb_accidents,
-        ROUND(SUM(100 * nb_tues + 10 * nb_blesses_hosp + nb_blesses_legers)::NUMERIC /
+        ROUND(SUM(100 * nb_tues + 30 * nb_blesses)::NUMERIC /
               NULLIF(SUM(nb_usagers_total), 0), 2) AS gravite_moyenne
     FROM analytics.accident_usagers_aggr
     WHERE dep_code IS NOT NULL
@@ -108,7 +107,7 @@ UNION ALL
         dep_code AS departement,
         dep_name AS nom_departement,
         COUNT(*) AS nb_accidents,
-        ROUND(SUM(100 * nb_tues + 10 * nb_blesses_hosp + nb_blesses_legers)::NUMERIC /
+        ROUND(SUM(100 * nb_tues + 30 * nb_blesses)::NUMERIC /
               NULLIF(SUM(nb_usagers_total), 0), 2) AS gravite_moyenne
     FROM analytics.accident_usagers_aggr
     WHERE dep_code IS NOT NULL
