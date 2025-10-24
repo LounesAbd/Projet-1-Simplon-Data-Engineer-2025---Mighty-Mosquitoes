@@ -4,5 +4,6 @@ config.yml
 .vscode/
 *.csv
 ./data/*.csv
-./analytics/__pycache__/
+etl/__pycache__/
+analytics/__pycache__/
 *.pyc
