@@ -41,9 +41,13 @@ Ces jeux de données comprennent des informations sur :
 
 - **Python** : ingestion, nettoyage et transformation des données  
 - **Pandas** : manipulation des fichiers CSV et préparation des datasets  
-- **PostgreSQL** : stockage relationnel et modélisation des données  
+- **PostgreSQL** : stockage relationnel, modélisation des données et intégration fluide avec l’écosystème Python  
 - **SQL** : requêtes analytiques et création de tableaux de bord  
-- **SQLAlchemy** : interaction entre Python et PostgreSQL
+- **SQLAlchemy** : couche d’abstraction entre Python et PostgreSQL, facilitant les échanges et la persistance des données  
+
+Nous avons choisi **PostgreSQL** comme SGBD car il offre un excellent compromis entre performance, robustesse et flexibilité.  
+Il s’intègre naturellement avec **Python** via **SQLAlchemy** et les bibliothèques de data science, ce qui permet de gérer efficacement des données massives issues d’API JSON (jusqu’à 500 000 enregistrements dans ce projet), tout en garantissant l’intégrité relationnelle (accidents, véhicules, personnes).
+
 
 ## 🧱 Architecture et conception du modèle de données
 
