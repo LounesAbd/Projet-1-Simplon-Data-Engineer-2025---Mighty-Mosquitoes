@@ -53,7 +53,7 @@ Il s’intègre naturellement avec **Python** via **SQLAlchemy** et les biblioth
 
 Le modèle relationnel comprend plusieurs entités principales :
 
--- à modifier ----------------------
+![alt text](erd_accmdb_dbdiagramv2.png)
 
 - **Accidents** : informations sur l’accident (date, heure, gravité, localisation)  
 - **Usagers** : personnes impliquées (âge, sexe, rôle dans l’accident)  
