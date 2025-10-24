@@ -155,3 +155,11 @@ sqlfile:
 ```
 
 Cette séparation garantit un projet sécurisé, portable et facile à maintenir.
+
+## 🔗 Liens utiles
+
+- 📘 **[Workflow Analytics — README](https://github.com/LounesAbd/Projet-1-Simplon-Data-Engineer-2025---Mighty-Mosquitoes/blob/main/analytics/README.md)**  
+  *Documentation complète du flux de travail analytique.*
+
+- 📊 **[Visualisations Analytics](https://github.com/LounesAbd/Projet-1-Simplon-Data-Engineer-2025---Mighty-Mosquitoes/tree/main/analytics/dataviz_images)**  
+  *Galerie des graphiques et tableaux de bord produits.*
