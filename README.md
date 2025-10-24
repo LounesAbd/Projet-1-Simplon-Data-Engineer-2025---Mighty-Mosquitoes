@@ -1,6 +1,6 @@
 <h2 align="center">Projet-1-Simplon-Data-Engineer-2025---Mighty-Mosquitoes
 
-<h1 align="center">ETL et Analyse de Données : Accidents corporels de la circulation Millésime</h2>
+<h1 align="center">ETL et Analyse de Données : Accidents corporels de la circulation Millésimé</h2>
 
 ## 🚗 Introduction du projet
 
@@ -45,7 +45,7 @@ Ces jeux de données comprennent des informations sur :
 - **SQL** : requêtes analytiques et création de tableaux de bord  
 - **SQLAlchemy** : couche d’abstraction entre Python et PostgreSQL, facilitant les échanges et la persistance des données  
 
-Nous avons choisi **PostgreSQL** comme SGBD car il offre un excellent compromis entre performance, robustesse et flexibilité.  
+Nous avons choisi **PostgreSQL** comme SGBDR car il offre un excellent compromis entre performance, robustesse et flexibilité.  
 Il s’intègre naturellement avec **Python** via **SQLAlchemy** et les bibliothèques de data science, ce qui permet de gérer efficacement des données massives issues d’API JSON (jusqu’à 500 000 enregistrements dans ce projet), tout en garantissant l’intégrité relationnelle (accidents, véhicules, personnes).
 
 
